@@ -1,0 +1,9 @@
+*.db
+
+*.exe
+bin/
+
+.env
+
+.vscode/
+.idea/
