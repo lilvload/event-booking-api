@@ -1,10 +1,10 @@
 POST http://localhost:8080/events
 content-type: application/json 
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QyQGV4YW1wbGUuY29tIiwiZXhwIjoxNzk0ODY0MDA1LCJ1c2VySWQiOjN9.5yLQsQxb75zS5gkI-V3sk5GTOxgMXZPSO9IMZC8K3Q0
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RAZXhhbXBsZS5jb20iLCJleHAiOjE3OTQ4Njk3NjgsInVzZXJJZCI6MX0.YzPBXmyyVtu7jTGa5MSgPPhXEDCmzxoAVyNGBhvol0g
 
 {
-    "name": "Java lab 2",
-    "description": "Doing lab work 2",
+    "name": "Java lab",
+    "description": "Doing lab work",
     "location": "Kyiv",
     "dateTime": "2026-11-16T21:00:00.000Z"
 }
