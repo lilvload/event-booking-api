@@ -1,6 +1,8 @@
 package models
 
 import (
+	"errors"
+
 	"github.com/lilvload/event-booking-api/db"
 	"github.com/lilvload/event-booking-api/utils"
 )
@@ -41,4 +43,28 @@ func (u User) Save() error {
 	u.ID = userId
 
 	return err
+}
+
+func (u User) ValidateCredentials() error {
+	query := `
+	SELECT password
+	FROM users
+	WHERE email = ?
+	`
+	row := db.DB.QueryRow(query, u.Email)
+
+	var retrivedPassword string
+	err := row.Scan(&retrivedPassword)
+
+	if err != nil {
+		return errors.New("Credentials invalid")
+	}
+
+	passwordIsValid := utils.CheckPasswordHash(u.Password, retrivedPassword)
+
+	if !passwordIsValid {
+		return errors.New("Credentials invalid")
+	}
+
+	return nil
 }
