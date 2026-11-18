@@ -1,21 +1,20 @@
 package models
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/lilvload/event-booking-api/db"
 )
 
 type Event struct {
-	ID          int64
-	Name        string    `binding:"required"`
-	Description string    `binding:"required"`
-	Location    string    `binding:"required"`
-	DateTime    time.Time `binding:"required"`
-	UserID      int64
+	ID          int64     `json:"id"`
+	Name        string    `json:"name" binding:"required"`
+	Description string    `json:"description" binding:"required"`
+	Location    string    `json:"location" binding:"required"`
+	DateTime    time.Time `json:"dateTime" binding:"required"`
+	UserID      int64     `json:"userId"`
 }
-
-var events = []Event{}
 
 func (e *Event) Save() error {
 	query := `
@@ -50,7 +49,7 @@ func GetAllEvents() ([]Event, error) {
 	}
 	defer rows.Close()
 
-	var events []Event
+	events := []Event{}
 
 	for rows.Next() {
 		var event Event
@@ -61,6 +60,10 @@ func GetAllEvents() ([]Event, error) {
 		}
 
 		events = append(events, event)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
 	}
 
 	return events, nil
@@ -154,7 +157,20 @@ func (e Event) CancelRegistration(userId int64) error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(e.ID, userId)
+	result, err := stmt.Exec(e.ID, userId)
 
-	return err
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+
+	return nil
 }

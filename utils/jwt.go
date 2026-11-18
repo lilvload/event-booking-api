@@ -2,12 +2,15 @@ package utils
 
 import (
 	"errors"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 )
 
-const secretKey = "supersecret"
+func getSecretKey() []byte {
+	return []byte(os.Getenv("JWT_SECRET"))
+}
 
 func GenerateToken(email string, userId int64) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -16,7 +19,7 @@ func GenerateToken(email string, userId int64) (string, error) {
 		"exp":    time.Now().Add(time.Hour * 2).Unix(),
 	})
 
-	return token.SignedString([]byte(secretKey))
+	return token.SignedString(getSecretKey())
 }
 
 func VerifyToken(token string) (int64, error) {
@@ -27,7 +30,7 @@ func VerifyToken(token string) (int64, error) {
 			return nil, errors.New("Unexpected signing method")
 		}
 
-		return []byte(secretKey), nil
+		return getSecretKey(), nil
 	})
 
 	if err != nil {

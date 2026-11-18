@@ -16,12 +16,11 @@ Anyone can browse events. Registered users can create their own events, edit or 
 - [Project structure](#project-structure)
 - [Getting started](#getting-started)
 - [Configuration](#configuration)
+- [Frontend integration](#frontend-integration)
 - [Authentication](#authentication)
 - [API reference](#api-reference)
-- [Usage example](#usage-example)
 - [Database schema](#database-schema)
 - [Testing the API](#testing-the-api)
-- [Known limitations and roadmap](#known-limitations-and-roadmap)
 - [Author](#author)
 
 ## Features
@@ -32,6 +31,9 @@ Anyone can browse events. Registered users can create their own events, edit or 
 - JWT authentication (HS256, tokens valid for 2 hours) implemented as a Gin middleware
 - Ownership check: only the user who created an event can update or delete it
 - Registration for an event and cancellation of a registration
+- Meaningful HTTP status codes: `404` for missing resources, `403` for actions on someone else's event, `409` for duplicates
+- Configuration through environment variables or a `.env` file
+- CORS support so a browser frontend on another origin can call the API
 - SQLite database that is created automatically on first start, with no external services to install
 - Request validation: all event and user fields are required
 - Ready-to-run `.http` request files for every endpoint
@@ -42,15 +44,18 @@ Anyone can browse events. Registered users can create their own events, edit or 
 |------|------|
 | Language | [Go](https://go.dev/) 1.26 |
 | HTTP framework | [Gin](https://github.com/gin-gonic/gin) v1.12 |
+| CORS | [gin-contrib/cors](https://github.com/gin-contrib/cors) |
 | Database | SQLite via [modernc.org/sqlite](https://pkg.go.dev/modernc.org/sqlite) (pure Go, no CGO required) and `database/sql` |
 | Authentication | [golang-jwt/jwt](https://github.com/golang-jwt/jwt) v5 |
 | Password hashing | [bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt) (`golang.org/x/crypto`) |
+| Configuration | [joho/godotenv](https://github.com/joho/godotenv) |
 
 ## Project structure
 
 ```
 event-booking-api/
-├── main.go              entry point: initializes the database and starts the server
+├── main.go              entry point: loads configuration, sets up CORS, starts the server
+├── .env.example         template of the environment variables (copy it to .env)
 ├── db/
 │   └── db.go            SQLite connection, connection pool settings, table creation
 ├── models/
@@ -81,14 +86,35 @@ No database server and no C compiler are needed: the SQLite driver is pure Go.
 
 ### Run locally
 
-```bash
-git clone https://github.com/lilvload/event-booking-api.git
-cd event-booking-api
-go mod download
-go run .
-```
+1. Clone the repository and download the dependencies:
 
-The server starts on `http://localhost:8080`. On first start it creates the `api.db` SQLite file in the working directory together with all tables.
+   ```bash
+   git clone https://github.com/lilvload/event-booking-api.git
+   cd event-booking-api
+   go mod download
+   ```
+
+2. Create your own `.env` file from the template:
+
+   ```bash
+   cp .env.example .env        # Windows PowerShell: copy .env.example .env
+   ```
+
+3. Open `.env` and set `JWT_SECRET`. Generate a random value, for example in Git Bash:
+
+   ```bash
+   openssl rand -hex 32
+   ```
+
+4. Start the server:
+
+   ```bash
+   go run .
+   ```
+
+The server starts on `http://localhost:8080` (or the port set in `PORT`). On first start it creates the SQLite database file (`api.db` by default) together with all tables.
+
+If `JWT_SECRET` is missing, the server stops with an error message on startup.
 
 ### Build a binary
 
@@ -97,23 +123,52 @@ go build -o bin/event-booking-api .
 ./bin/event-booking-api
 ```
 
-To start from an empty database, stop the server and delete `api.db`.
+Run the binary from the folder that contains `.env`, or set the variables in the system environment.
+
+To start from an empty database, stop the server and delete the database file.
 
 ## Configuration
 
-The project currently has no environment variables. All settings are constants in the code:
+Settings are read from environment variables. On startup the server loads them from a `.env` file in the working directory, if one exists. Variables already set in the system environment take precedence over the file, so on a hosting platform you set them in its dashboard and no `.env` file is needed.
+
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `JWT_SECRET` | **Yes** | none | Secret key used to sign and verify JWTs. Use a long random value and never commit it. |
+| `PORT` | No | `8080` | Port the HTTP server listens on |
+| `DB_PATH` | No | `api.db` | Path to the SQLite database file |
+| `CORS_ALLOWED_ORIGINS` | No | `http://localhost:5173` | Comma-separated list of frontend origins allowed to call the API, without spaces, e.g. `http://localhost:5173,https://my-app.com` |
+
+`.env` is listed in `.gitignore` and must never be committed. `.env.example` is committed and lists every variable the project expects. When you add a new variable, add it to `.env.example` too.
+
+Changes to `.env` take effect after the server is restarted.
+
+Other settings are still defined in the code:
 
 | Setting | Value | Location |
 |---------|-------|----------|
-| Port | `8080` | `main.go` |
-| Database file | `api.db` (working directory) | `db/db.go` |
 | Connection pool | 10 open / 5 idle connections | `db/db.go` |
-| JWT signing key | hard-coded constant | `utils/jwt.go` |
 | Token lifetime | 2 hours | `utils/jwt.go` |
 | bcrypt cost | 14 | `utils/hash.go` |
 
 Gin runs in debug mode by default. Set `GIN_MODE=release` to turn off debug logging.
 
+## Frontend integration
+
+The frontend lives in its own project with its own `.env`. For a Vite app it typically contains:
+
+```env
+VITE_API_URL=http://localhost:8080
+```
+
+To make the two projects work together locally:
+
+1. Start this API (see [Run locally](#run-locally)).
+2. Make sure the frontend's origin, e.g. `http://localhost:5173`, is listed in `CORS_ALLOWED_ORIGINS` in the API's `.env`. Otherwise the browser blocks the requests with a CORS error.
+3. Point the frontend at the API URL (`VITE_API_URL` above).
+
+The API allows the `GET`, `POST`, `PUT`, `DELETE` and `OPTIONS` methods and the `Origin`, `Content-Type` and `Authorization` headers from the allowed origins.
+
+Never put secrets such as `JWT_SECRET` in the frontend `.env`: variables there are bundled into the JavaScript that every visitor downloads.
 
 ## Authentication
 
@@ -122,10 +177,12 @@ Gin runs in debug mode by default. Set `GIN_MODE=release` to turn off debug logg
 3. Send the token in the `Authorization` header of every protected request.
 
 ```
-Authorization: <your-jwt-token>
+Authorization: Bearer <your-jwt-token>
 ```
 
-The header must contain the raw token **without** the `Bearer ` prefix. A missing, invalid or expired token results in `401 Unauthorized`.
+The `Bearer ` prefix is optional: the raw token without the prefix is accepted too. A missing, invalid or expired token results in `401 Unauthorized`.
+
+Tokens are signed with `JWT_SECRET`. If the secret changes, all previously issued tokens stop working and users have to log in again.
 
 ## API reference
 
@@ -143,7 +200,9 @@ Base URL: `http://localhost:8080`
 | `POST` | `/signup` | Create a user | No |
 | `POST` | `/login` | Log in and receive a JWT | No |
 
-Request bodies are JSON. Field names in request bodies are case-insensitive (`name` and `Name` both work); responses use capitalized field names.
+Request and response bodies are JSON with camelCase field names (`name`, `dateTime`, `userId`).
+
+All error responses have the form `{"message": "..."}`.
 
 ### Users
 
@@ -160,7 +219,8 @@ Request bodies are JSON. Field names in request bodies are case-insensitive (`na
 |--------|------|
 | `201 Created` | `{"message": "User created successfully!"}` |
 | `400 Bad Request` | A field is missing or the JSON is invalid |
-| `500 Internal Server Error` | The user could not be saved, for example the email is already taken |
+| `409 Conflict` | `{"message": "Email already registered."}` |
+| `500 Internal Server Error` | The user could not be saved |
 
 #### `POST /login`
 
@@ -185,20 +245,20 @@ Takes the same body as `/signup`.
 
 ```json
 {
-  "ID": 1,
-  "Name": "Go meetup",
-  "Description": "Talks",
-  "Location": "Kyiv",
-  "DateTime": "2026-12-01T18:00:00Z",
-  "UserID": 1
+  "id": 1,
+  "name": "Go meetup",
+  "description": "Talks",
+  "location": "Kyiv",
+  "dateTime": "2026-12-01T18:00:00Z",
+  "userId": 1
 }
 ```
 
-`UserID` is the ID of the user who created the event. It is taken from the token, not from the request body.
+`userId` is the ID of the user who created the event. It is taken from the token, not from the request body.
 
 #### `GET /events`
 
-Returns `200 OK` with an array of event objects (`null` when there are no events yet).
+Returns `200 OK` with an array of event objects, or an empty array `[]` when there are no events yet.
 
 #### `GET /events/:id`
 
@@ -206,7 +266,8 @@ Returns `200 OK` with an array of event objects (`null` when there are no events
 |--------|------|
 | `200 OK` | Event object |
 | `400 Bad Request` | The ID is not a number |
-| `500 Internal Server Error` | The event could not be fetched, including when it does not exist |
+| `404 Not Found` | `{"message": "Event not found."}` |
+| `500 Internal Server Error` | The event could not be fetched |
 
 #### `POST /events`
 
@@ -226,6 +287,7 @@ All four fields are required. `dateTime` must be an RFC 3339 timestamp.
 | `201 Created` | `{"message": "Event created!", "event": { ... }}` |
 | `400 Bad Request` | A field is missing or the JSON is invalid |
 | `401 Unauthorized` | No valid token |
+| `500 Internal Server Error` | The event could not be saved |
 
 #### `PUT /events/:id`
 
@@ -235,17 +297,21 @@ Takes the same body as `POST /events`; all fields are required, so this is a ful
 |--------|------|
 | `200 OK` | `{"message": "Event updated successfully!"}` |
 | `400 Bad Request` | Invalid ID or request body |
-| `401 Unauthorized` | No valid token, or the current user is not the creator of the event |
-| `500 Internal Server Error` | The event could not be fetched (including when it does not exist) or updated |
+| `401 Unauthorized` | No valid token |
+| `403 Forbidden` | The current user is not the creator of the event |
+| `404 Not Found` | `{"message": "Event not found."}` |
+| `500 Internal Server Error` | The event could not be fetched or updated |
 
 #### `DELETE /events/:id`
 
 | Status | Body |
 |--------|------|
 | `200 OK` | `{"message": "Event deleted successfully!"}` |
-| `400 Bad Request` | Invalid ID |
-| `401 Unauthorized` | No valid token, or the current user is not the creator of the event |
-| `500 Internal Server Error` | The event could not be fetched, including when it does not exist |
+| `400 Bad Request` | Invalid ID, or the event could not be deleted |
+| `401 Unauthorized` | No valid token |
+| `403 Forbidden` | The current user is not the creator of the event |
+| `404 Not Found` | `{"message": "Event not found."}` |
+| `500 Internal Server Error` | The event could not be fetched |
 
 ### Registrations
 
@@ -258,7 +324,9 @@ No request body. Registers the user identified by the token.
 | `201 Created` | `{"message": "Registered!"}` |
 | `400 Bad Request` | Invalid ID |
 | `401 Unauthorized` | No valid token |
-| `500 Internal Server Error` | The event could not be fetched, including when it does not exist |
+| `404 Not Found` | `{"message": "Event not found."}` |
+| `409 Conflict` | `{"message": "Already registered for this event."}` |
+| `500 Internal Server Error` | The registration could not be saved |
 
 #### `DELETE /events/:id/register`
 
@@ -269,19 +337,18 @@ No request body.
 | `200 OK` | `{"message": "Cancelled!"}` |
 | `400 Bad Request` | Invalid ID |
 | `401 Unauthorized` | No valid token |
-
-All error responses have the form `{"message": "..."}`.
-
+| `404 Not Found` | `{"message": "Registration not found."}` (the user is not registered for this event) |
+| `500 Internal Server Error` | The registration could not be cancelled |
 
 ## Database schema
 
-Three tables are created automatically in `api.db`:
+Three tables are created automatically in the database file (`DB_PATH`, `api.db` by default):
 
 | Table | Columns |
 |-------|---------|
 | `users` | `id` (PK, autoincrement), `email` (unique, not null), `password` (bcrypt hash, not null) |
 | `events` | `id` (PK, autoincrement), `name`, `description`, `location`, `dateTime` (all not null), `user_id` → `users.id` |
-| `registrations` | `id` (PK, autoincrement), `event_id` → `events.id`, `user_id` → `users.id` |
+| `registrations` | `id` (PK, autoincrement), `event_id` → `events.id` (cascade delete), `user_id` → `users.id` (cascade delete), unique pair `(event_id, user_id)` |
 
 ```
 users 1 ──── * events
@@ -304,7 +371,7 @@ The [`api-test/`](api-test) folder contains one `.http` file per endpoint. They 
 | `register.http` | `POST /events/:id/register` |
 | `cancel-registration.http` | `DELETE /events/:id/register` |
 
-The tokens saved in these files have expired. Run `login.http` first and paste the new token into the `Authorization` header of the protected requests.
+The tokens saved in these files are expired or were signed with a different secret, so they will not work. Run `login.http` first and paste the new token into the `Authorization` header of the protected requests.
 
 There are no automated tests yet.
 

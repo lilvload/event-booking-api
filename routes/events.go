@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -28,6 +30,10 @@ func getEvent(context *gin.Context) {
 
 	event, err := models.GetEventByID(eventId)
 
+	if errors.Is(err, sql.ErrNoRows) {
+		context.JSON(http.StatusNotFound, gin.H{"message": "Event not found."})
+		return
+	}
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch event. Try again later."})
 		return
@@ -68,13 +74,17 @@ func updateEvent(context *gin.Context) {
 	userId := context.GetInt64("userId")
 	event, err := models.GetEventByID(eventId)
 
+	if errors.Is(err, sql.ErrNoRows) {
+		context.JSON(http.StatusNotFound, gin.H{"message": "Event not found."})
+		return
+	}
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch the event."})
 		return
 	}
 
 	if event.UserID != userId {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorized to update event."})
+		context.JSON(http.StatusForbidden, gin.H{"message": "You have no permission to update this event."})
 		return
 	}
 
@@ -107,13 +117,17 @@ func deleteEvent(context *gin.Context) {
 	userId := context.GetInt64("userId")
 	event, err := models.GetEventByID(eventId)
 
+	if errors.Is(err, sql.ErrNoRows) {
+		context.JSON(http.StatusNotFound, gin.H{"message": "Event not found."})
+		return
+	}
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch the event."})
 		return
 	}
 
 	if event.UserID != userId {
-		context.JSON(http.StatusUnauthorized, gin.H{"message": "Not authorized to delete event."})
+		context.JSON(http.StatusForbidden, gin.H{"message": "You have no permission to delete this event."})
 		return
 	}
 

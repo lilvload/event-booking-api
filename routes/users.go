@@ -2,6 +2,7 @@ package routes
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lilvload/event-booking-api/models"
@@ -19,8 +20,11 @@ func signup(context *gin.Context) {
 	}
 
 	err = user.Save()
-
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			context.JSON(http.StatusConflict, gin.H{"message": "Email already registered."})
+			return
+		}
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not save user."})
 		return
 	}

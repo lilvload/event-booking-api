@@ -1,8 +1,11 @@
 package routes
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lilvload/event-booking-api/models"
@@ -19,14 +22,21 @@ func registerForEvent(context *gin.Context) {
 
 	event, err := models.GetEventByID(eventId)
 
+	if errors.Is(err, sql.ErrNoRows) {
+		context.JSON(http.StatusNotFound, gin.H{"message": "Event not found."})
+		return
+	}
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch event."})
 		return
 	}
 
 	err = event.Register(userId)
-
 	if err != nil {
+		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			context.JSON(http.StatusConflict, gin.H{"message": "Already registered for this event."})
+			return
+		}
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not register user for event."})
 		return
 	}
@@ -48,6 +58,10 @@ func cancelRegistration(context *gin.Context) {
 
 	err = event.CancelRegistration(userId)
 
+	if errors.Is(err, sql.ErrNoRows) {
+		context.JSON(http.StatusNotFound, gin.H{"message": "Registration not found."})
+		return
+	}
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not cancel registration."})
 		return

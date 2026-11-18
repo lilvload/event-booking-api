@@ -2,6 +2,7 @@ package db
 
 import (
 	"database/sql"
+	"os"
 
 	_ "modernc.org/sqlite"
 )
@@ -9,8 +10,13 @@ import (
 var DB *sql.DB
 
 func InitDB() {
+	dbPath := os.Getenv("DB_PATH")
+	if dbPath == "" {
+		dbPath = "api.db"
+	}
+
 	var err error
-	DB, err = sql.Open("sqlite", "api.db")
+	DB, err = sql.Open("sqlite", "file:"+dbPath+"?_pragma=foreign_keys(1)")
 
 	if err != nil {
 		panic("Could not connect to database.")
@@ -43,7 +49,7 @@ func createTables() {
 		description TEXT NOT NULL,
 		location TEXT NOT NULL,
 		dateTime DATETIME NOT NULL,
-		user_id INTEGER,
+		user_id INTEGER NOT NULL,
 		FOREIGN KEY(user_id) REFERENCES users(id)
 	)
 	`
@@ -57,10 +63,11 @@ func createTables() {
 	createRegistrationsTable := `
 	CREATE TABLE IF NOT EXISTS registrations (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		event_id INTEGER,
-		user_id INTEGER,
-		FOREIGN KEY(event_id) REFERENCES events(id)
-		FOREIGN KEY(user_id) REFERENCES users(id)
+		event_id INTEGER NOT NULL,
+		user_id INTEGER NOT NULL,
+		UNIQUE(event_id, user_id),
+		FOREIGN KEY(event_id) REFERENCES events(id) ON DELETE CASCADE,
+		FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
 	)
 	`
 
