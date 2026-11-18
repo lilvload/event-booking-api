@@ -1,0 +1,454 @@
+basePath: /
+definitions:
+  models.Event:
+    properties:
+      dateTime:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      location:
+        type: string
+      name:
+        type: string
+      userId:
+        type: integer
+    required:
+    - dateTime
+    - description
+    - location
+    - name
+    type: object
+  models.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+info:
+  contact: {}
+  description: REST API for booking events. Anyone can browse events; registered users
+    can create, update and delete their own events and register for any event.
+  title: Event Booking API
+  version: "1.0"
+paths:
+  /events:
+    get:
+      description: Returns all events. An empty list is returned as [].
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Event'
+            type: array
+        "500":
+          description: Could not fetch events
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: List events
+      tags:
+      - events
+    post:
+      consumes:
+      - application/json
+      description: Creates an event owned by the current user. All four fields are
+        required; dateTime is an RFC 3339 timestamp.
+      parameters:
+      - description: Event data (id and userId are ignored)
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/models.Event'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: message and the created event
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid JSON or a missing field
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: No valid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Could not create the event
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create an event
+      tags:
+      - events
+  /events/{id}:
+    delete:
+      description: Deletes an event and all registrations for it. Only the creator
+        of the event can delete it.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid ID, or the event could not be deleted
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: No valid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: The current user is not the creator
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Event not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Could not fetch the event
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete an event
+      tags:
+      - events
+    get:
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Event'
+        "400":
+          description: The ID is not a number
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Event not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Could not fetch the event
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get an event
+      tags:
+      - events
+    put:
+      consumes:
+      - application/json
+      description: Replaces all fields of an event. Only the creator of the event
+        can update it.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New event data (id and userId are ignored)
+        in: body
+        name: event
+        required: true
+        schema:
+          $ref: '#/definitions/models.Event'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid ID, invalid JSON or a missing field
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: No valid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "403":
+          description: The current user is not the creator
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Event not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Could not fetch or update the event
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update an event
+      tags:
+      - events
+  /events/{id}/register:
+    delete:
+      description: Cancels the current user's registration for the event. No request
+        body.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: No valid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: The user is not registered for this event
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Could not cancel the registration
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Cancel a registration
+      tags:
+      - registrations
+    post:
+      description: Registers the current user for the event. No request body.
+      parameters:
+      - description: Event ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid ID
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: No valid token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Event not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Already registered for this event
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Could not save the registration
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Register for an event
+      tags:
+      - registrations
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Checks the credentials and returns a JWT that is valid for 2 hours.
+      parameters:
+      - description: Email and password (id is ignored)
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: message and token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid JSON or a missing field
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Credentials invalid
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Could not generate the token
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Log in
+      tags:
+      - users
+  /signup:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user. The password is stored as a bcrypt hash.
+        No token is returned; call POST /login afterwards.
+      parameters:
+      - description: Email and password (id is ignored)
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/models.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: message
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid JSON or a missing field
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Email already registered
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Could not save the user
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create a user
+      tags:
+      - users
+securityDefinitions:
+  BearerAuth:
+    description: 'JWT from POST /login. Enter it as: Bearer <token>'
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
+tags:
+- description: Signup and login
+  name: users
+- description: Event management
+  name: events
+- description: Registering for events
+  name: registrations

@@ -13,6 +13,22 @@ import (
 	"github.com/lilvload/event-booking-api/routes"
 )
 
+// @title           Event Booking API
+// @version         1.0
+// @description     REST API for booking events. Anyone can browse events; registered users can create, update and delete their own events and register for any event.
+// @BasePath        /
+
+// @tag.name        users
+// @tag.description Signup and login
+// @tag.name        events
+// @tag.description Event management
+// @tag.name        registrations
+// @tag.description Registering for events
+
+// @securityDefinitions.apikey BearerAuth
+// @in                         header
+// @name                       Authorization
+// @description                JWT from POST /login. Enter it as: Bearer <token>
 func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using system environment variables")
