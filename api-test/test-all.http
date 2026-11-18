@@ -1,0 +1,149 @@
+# End-to-end scenario for every endpoint.
+# Requires the VS Code REST Client extension (humao.rest-client).
+#
+# Run the requests from top to bottom with "Send Request": later requests
+# take the tokens and the event ID from the responses of earlier ones.
+# The expected status is written above each request.
+#
+# Best run against an empty database. On a second run steps 2 and 4 return
+# 409 because the users already exist; the rest still works.
+
+@baseUrl = http://localhost:8080
+@tokenA = {{loginA.response.body.$.token}}
+@tokenB = {{loginB.response.body.$.token}}
+@eventId = {{createEvent.response.body.$.event.id}}
+
+### 1. List events -> 200, [] on an empty database
+GET {{baseUrl}}/events
+
+### 2. Sign up user A -> 201
+POST {{baseUrl}}/signup
+Content-Type: application/json
+
+{ "email": "a@test.com", "password": "test123" }
+
+### 3. Sign up with the same email again -> 409 "Email already registered."
+POST {{baseUrl}}/signup
+Content-Type: application/json
+
+{ "email": "a@test.com", "password": "test123" }
+
+### 4. Sign up user B -> 201
+POST {{baseUrl}}/signup
+Content-Type: application/json
+
+{ "email": "b@test.com", "password": "test123" }
+
+### 5. Log in with a wrong password -> 401 "Credentials invalid"
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{ "email": "a@test.com", "password": "wrong" }
+
+### 6. Log in as A -> 200, token
+# @name loginA
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{ "email": "a@test.com", "password": "test123" }
+
+### 7. Log in as B -> 200, token
+# @name loginB
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{ "email": "b@test.com", "password": "test123" }
+
+### 8. A creates an event (with "Bearer ") -> 201, camelCase fields
+# @name createEvent
+POST {{baseUrl}}/events
+Content-Type: application/json
+Authorization: Bearer {{tokenA}}
+
+{ "name": "Go meetup", "description": "Talks", "location": "Kyiv", "dateTime": "2026-12-01T18:00:00Z" }
+
+### 9. A creates an event with the raw token (no "Bearer ") -> 201
+POST {{baseUrl}}/events
+Content-Type: application/json
+Authorization: {{tokenA}}
+
+{ "name": "Second meetup", "description": "Workshop", "location": "Lviv", "dateTime": "2026-12-15T18:00:00Z" }
+
+### 10. Create an event with an invalid token -> 401
+POST {{baseUrl}}/events
+Content-Type: application/json
+Authorization: Bearer abc
+
+{ "name": "X", "description": "X", "location": "X", "dateTime": "2026-12-01T18:00:00Z" }
+
+### 11. Create an event with a missing field -> 400
+POST {{baseUrl}}/events
+Content-Type: application/json
+Authorization: Bearer {{tokenA}}
+
+{ "name": "No location", "description": "X", "dateTime": "2026-12-01T18:00:00Z" }
+
+### 12. Get the event -> 200
+GET {{baseUrl}}/events/{{eventId}}
+
+### 13. Get an event that does not exist -> 404 "Event not found."
+GET {{baseUrl}}/events/999999
+
+### 14. Get an event with a non-numeric ID -> 400
+GET {{baseUrl}}/events/abc
+
+### 15. A updates the own event -> 200
+PUT {{baseUrl}}/events/{{eventId}}
+Content-Type: application/json
+Authorization: Bearer {{tokenA}}
+
+{ "name": "Go meetup (updated)", "description": "Talks and pizza", "location": "Kyiv", "dateTime": "2026-12-01T19:00:00Z" }
+
+### 16. B updates A's event -> 403
+PUT {{baseUrl}}/events/{{eventId}}
+Content-Type: application/json
+Authorization: Bearer {{tokenB}}
+
+{ "name": "Hacked", "description": "X", "location": "X", "dateTime": "2026-12-01T18:00:00Z" }
+
+### 17. B deletes A's event -> 403
+DELETE {{baseUrl}}/events/{{eventId}}
+Authorization: Bearer {{tokenB}}
+
+### 18. Update an event that does not exist -> 404
+PUT {{baseUrl}}/events/999999
+Content-Type: application/json
+Authorization: Bearer {{tokenA}}
+
+{ "name": "X", "description": "X", "location": "X", "dateTime": "2026-12-01T18:00:00Z" }
+
+### 19. Delete an event that does not exist -> 404
+DELETE {{baseUrl}}/events/999999
+Authorization: Bearer {{tokenA}}
+
+### 20. B registers for the event -> 201
+POST {{baseUrl}}/events/{{eventId}}/register
+Authorization: Bearer {{tokenB}}
+
+### 21. B registers again -> 409 "Already registered for this event."
+POST {{baseUrl}}/events/{{eventId}}/register
+Authorization: Bearer {{tokenB}}
+
+### 22. Register for an event that does not exist -> 404
+POST {{baseUrl}}/events/999999/register
+Authorization: Bearer {{tokenB}}
+
+### 23. B cancels the registration -> 200
+DELETE {{baseUrl}}/events/{{eventId}}/register
+Authorization: Bearer {{tokenB}}
+
+### 24. B cancels again -> 404 "Registration not found."
+DELETE {{baseUrl}}/events/{{eventId}}/register
+Authorization: Bearer {{tokenB}}
+
+### 25. A deletes the own event -> 200
+DELETE {{baseUrl}}/events/{{eventId}}
+Authorization: Bearer {{tokenA}}
+
+### 26. The deleted event is gone -> 404
+GET {{baseUrl}}/events/{{eventId}}

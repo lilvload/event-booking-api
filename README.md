@@ -38,7 +38,7 @@ Anyone can browse events. Registered users can create their own events, edit or 
 - SQLite database that is created automatically on first start, with no external services to install
 - Request validation: all event and user fields are required
 - Interactive API documentation with Swagger UI at `/swagger/index.html`
-- Ready-to-run `.http` request files for every endpoint
+- A ready-to-run `.http` scenario that exercises every endpoint and its error cases
 
 ## Tech stack
 
@@ -75,7 +75,8 @@ event-booking-api/
 ├── utils/
 │   ├── hash.go          bcrypt helpers
 │   └── jwt.go           token generation and verification
-├── api-test/            sample HTTP requests for every endpoint
+├── api-test/
+│   └── test-all.http    end-to-end request scenario for every endpoint (VS Code REST Client)
 ├── go.mod
 └── go.sum
 ```
@@ -388,21 +389,14 @@ users 1 ──── * registrations * ──── 1 events
 
 The quickest way to try the endpoints is [Swagger UI](#api-documentation-swagger) in the browser.
 
-The [`api-test/`](api-test) folder contains one `.http` file per endpoint. They can be run with the [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension for VS Code or the built-in HTTP client of GoLand / IntelliJ IDEA.
+To check the whole API after a change, use [`api-test/test-all.http`](api-test/test-all.http). It is a scenario of 26 requests that covers every endpoint together with its error cases: two users sign up and log in, user A creates, updates and deletes an event, user B tries to change it and registers for it.
 
-| File | Request |
-|------|---------|
-| `create-user.http` | `POST /signup` |
-| `login.http` | `POST /login` |
-| `get-events.http` | `GET /events` |
-| `get-single-event.http` | `GET /events/:id` |
-| `create-event.http` | `POST /events` |
-| `update-event.http` | `PUT /events/:id` |
-| `delete-event.http` | `DELETE /events/:id` |
-| `register.http` | `POST /events/:id/register` |
-| `cancel-registration.http` | `DELETE /events/:id/register` |
+1. Install the [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension for VS Code. The file uses its syntax for passing values between requests, so other HTTP clients will not run it as is.
+2. Start the server, preferably with an empty database: set `DB_PATH=test.db` in `.env` and delete `test.db` before each run.
+3. Open the file and click **Send Request** above each request, from top to bottom. Later requests take the tokens and the event ID from the responses of earlier ones, so nothing has to be copied by hand.
+4. Compare the response status with the one written above the request.
 
-The tokens saved in these files are expired or were signed with a different secret, so they will not work. Run `login.http` first and paste the new token into the `Authorization` header of the protected requests.
+Run against a database that already has the test users, steps 2 and 4 return `409`; the rest of the scenario still works.
 
 There are no automated tests yet.
 
