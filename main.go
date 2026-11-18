@@ -16,7 +16,7 @@ import (
 // @title           Event Booking API
 // @version         1.0
 // @description     REST API for booking events. Anyone can browse events; registered users can create, update and delete their own events and register for any event.
-// @BasePath        /
+// @BasePath        /api/v1
 
 // @tag.name        users
 // @tag.description Signup and login

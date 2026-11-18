@@ -8,7 +8,7 @@
 # Best run against an empty database. On a second run steps 2 and 4 return
 # 409 because the users already exist; the rest still works.
 
-@baseUrl = http://localhost:8080
+@baseUrl = http://localhost:8080/api/v1
 @tokenA = {{loginA.response.body.$.token}}
 @tokenB = {{loginB.response.body.$.token}}
 @eventId = {{createEvent.response.body.$.event.id}}

@@ -10,10 +10,12 @@ import (
 )
 
 func RegisterRoutes(server *gin.Engine) {
-	server.GET("/events", getEvents)
-	server.GET("/events/:id", getEvent)
+	v1 := server.Group("/api/v1")
 
-	authenticated := server.Group("/")
+	v1.GET("/events", getEvents)
+	v1.GET("/events/:id", getEvent)
+
+	authenticated := v1.Group("/")
 	authenticated.Use(middlewares.Authenticate)
 
 	authenticated.POST("/events", createEvent)
@@ -22,8 +24,8 @@ func RegisterRoutes(server *gin.Engine) {
 	authenticated.POST("/events/:id/register", registerForEvent)
 	authenticated.DELETE("/events/:id/register", cancelRegistration)
 
-	server.POST("/signup", signup)
-	server.POST("/login", login)
+	v1.POST("/signup", signup)
+	v1.POST("/login", login)
 
 	// API documentation: http://localhost:8080/swagger/index.html
 	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))

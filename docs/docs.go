@@ -698,7 +698,7 @@ const docTemplate = `{
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
 	Host:             "",
-	BasePath:         "/",
+	BasePath:         "/api/v1",
 	Schemes:          []string{},
 	Title:            "Event Booking API",
 	Description:      "REST API for booking events. Anyone can browse events; registered users can create, update and delete their own events and register for any event.",

@@ -32,6 +32,7 @@ Anyone can browse events. Registered users can create their own events, edit or 
 - JWT authentication (HS256, tokens valid for 2 hours) implemented as a Gin middleware
 - Ownership check: only the user who created an event can update or delete it
 - Registration for an event and cancellation of a registration
+- Versioned API: every endpoint lives under `/api/v1`
 - Meaningful HTTP status codes: `404` for missing resources, `403` for actions on someone else's event, `409` for duplicates
 - Configuration through environment variables or a `.env` file
 - CORS support so a browser frontend on another origin can call the API
@@ -66,7 +67,7 @@ event-booking-api/
 │   ├── event.go         Event model: save, list, get by ID, update, delete, register, cancel
 │   └── user.go          User model: save with hashed password, credential validation
 ├── routes/
-│   ├── routes.go        route table, the authenticated route group and the Swagger UI route
+│   ├── routes.go        route table: the /api/v1 group, its authenticated subgroup, the Swagger UI route
 │   ├── events.go        event handlers
 │   ├── users.go         signup and login handlers
 │   └── register.go      event registration handlers
@@ -117,7 +118,7 @@ No database server and no C compiler are needed: the SQLite driver is pure Go.
    go run .
    ```
 
-The server starts on `http://localhost:8080` (or the port set in `PORT`). On first start it creates the SQLite database file (`api.db` by default) together with all tables.
+The server starts on `http://localhost:8080` (or the port set in `PORT`), and the API is served under `http://localhost:8080/api/v1`. On first start it creates the SQLite database file (`api.db` by default) together with all tables.
 
 The interactive API documentation is then available at `http://localhost:8080/swagger/index.html`.
 
@@ -164,8 +165,10 @@ Gin runs in debug mode by default. Set `GIN_MODE=release` to turn off debug logg
 The frontend lives in its own project with its own `.env`. For a Vite app it typically contains:
 
 ```env
-VITE_API_URL=http://localhost:8080
+VITE_API_URL=http://localhost:8080/api/v1
 ```
+
+With the version in the base URL, the frontend code uses short paths such as `` `${API_URL}/events` ``, and moving to a future `v2` means changing this one line.
 
 To make the two projects work together locally:
 
@@ -214,9 +217,9 @@ The version of the `swag` command must match the `github.com/swaggo/swag` versio
 
 ## API reference
 
-Base URL: `http://localhost:8080`
+Base URL: `http://localhost:8080/api/v1`
 
-The same information is available interactively in [Swagger UI](#api-documentation-swagger).
+All endpoint paths below are relative to the base URL: `POST /login` means `POST http://localhost:8080/api/v1/login`. The same information is available interactively in [Swagger UI](#api-documentation-swagger), which sends requests to the correct base URL by itself.
 
 | Method | Endpoint | Description | Auth |
 |--------|----------|-------------|------|
@@ -233,6 +236,12 @@ The same information is available interactively in [Swagger UI](#api-documentati
 Request and response bodies are JSON with camelCase field names (`name`, `dateTime`, `userId`).
 
 All error responses have the form `{"message": "..."}`.
+
+### Versioning
+
+The version in the path changes only for breaking changes: renaming or removing a field or an endpoint, changing a field's type or the shape of a response, making an optional field required, or changing a status code that clients rely on. New endpoints and new response fields are added to `v1` without a version change.
+
+When a breaking change is needed, it goes into a new `/api/v2` group next to `/api/v1`, and both versions are served until no client uses `v1` any more. Swagger UI (`/swagger/index.html`) stays outside the versioned paths.
 
 ### Users
 
