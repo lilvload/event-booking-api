@@ -1,10 +1,12 @@
 package routes
 
 import (
+	"errors"
 	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
 	"github.com/lilvload/event-booking-api/models"
 	"github.com/lilvload/event-booking-api/utils"
 )
@@ -17,7 +19,7 @@ import (
 // @Produce      json
 // @Param        user  body      models.SignupRequest        true  "Email and password"
 // @Success      201   {object}  map[string]string  "message"
-// @Failure      400   {object}  map[string]string  "Invalid JSON or a missing field"
+// @Failure      400   {object}  map[string]string  "Invalid JSON, a missing field or validation error"
 // @Failure      409   {object}  map[string]string  "Email already registered"
 // @Failure      500   {object}  map[string]string  "Could not save the user"
 // @Router       /signup [post]
@@ -27,6 +29,24 @@ func signup(context *gin.Context) {
 	err := context.ShouldBindJSON(&req)
 
 	if err != nil {
+		if validationErrors, ok := errors.AsType[validator.ValidationErrors](err); ok {
+			fe := validationErrors[0]
+
+			switch {
+			case fe.Tag() == "required":
+				context.JSON(http.StatusBadRequest, gin.H{"message": fe.Field() + " is required."})
+				return
+			case fe.Field() == "Email" && fe.Tag() == "email":
+				context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid email format."})
+				return
+			case fe.Field() == "Password" && fe.Tag() == "min":
+				context.JSON(http.StatusBadRequest, gin.H{"message": "Password must be at least " + fe.Param() + " characters long."})
+				return
+			case fe.Field() == "Password" && fe.Tag() == "max":
+				context.JSON(http.StatusBadRequest, gin.H{"message": "Password must be at most " + fe.Param() + " characters long."})
+				return
+			}
+		}
 		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
 		return
 	}
