@@ -162,11 +162,11 @@ func updateEvent(context *gin.Context) {
 // @Security     BearerAuth
 // @Param        id   path      int                true  "Event ID"
 // @Success      200  {object}  map[string]string  "message"
-// @Failure      400  {object}  map[string]string  "Invalid ID, or the event could not be deleted"
+// @Failure      400  {object}  map[string]string  "Invalid ID"
 // @Failure      401  {object}  map[string]string  "No valid token"
 // @Failure      403  {object}  map[string]string  "The current user is not the creator"
 // @Failure      404  {object}  map[string]string  "Event not found"
-// @Failure      500  {object}  map[string]string  "Could not fetch the event"
+// @Failure      500  {object}  map[string]string  "Could not fetch or delete the event"
 // @Router       /events/{id} [delete]
 func deleteEvent(context *gin.Context) {
 	eventId, err := strconv.ParseInt(context.Param("id"), 10, 64)
@@ -194,7 +194,7 @@ func deleteEvent(context *gin.Context) {
 
 	err = event.Delete()
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not delete the event."})
+		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not delete the event."})
 		return
 	}
 

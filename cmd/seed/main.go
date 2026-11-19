@@ -92,13 +92,7 @@ func main() {
 		if err := user.Save(); err != nil {
 			log.Fatalf("Could not create user %s: %v", email, err)
 		}
-
-		// User.Save does not return the new ID, so look it up.
-		var id int64
-		if err := db.DB.QueryRow("SELECT id FROM users WHERE email = ?", email).Scan(&id); err != nil {
-			log.Fatalf("Could not read the ID of user %s: %v", email, err)
-		}
-		userIDs[email] = id
+		userIDs[email] = user.ID
 	}
 
 	today := time.Now().UTC().Truncate(24 * time.Hour)
