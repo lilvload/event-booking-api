@@ -15,20 +15,25 @@ import (
 // @Tags         users
 // @Accept       json
 // @Produce      json
-// @Param        user  body      models.User        true  "Email and password (id is ignored)"
+// @Param        user  body      models.SignupRequest        true  "Email and password"
 // @Success      201   {object}  map[string]string  "message"
 // @Failure      400   {object}  map[string]string  "Invalid JSON or a missing field"
 // @Failure      409   {object}  map[string]string  "Email already registered"
 // @Failure      500   {object}  map[string]string  "Could not save the user"
 // @Router       /signup [post]
 func signup(context *gin.Context) {
-	var user models.User
+	var req models.SignupRequest
 
-	err := context.ShouldBindJSON(&user)
+	err := context.ShouldBindJSON(&req)
 
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
 		return
+	}
+
+	user := models.User{
+		Email:    req.Email,
+		Password: req.Password,
 	}
 
 	err = user.Save()
@@ -50,20 +55,25 @@ func signup(context *gin.Context) {
 // @Tags         users
 // @Accept       json
 // @Produce      json
-// @Param        user  body      models.User        true  "Email and password (id is ignored)"
+// @Param        user  body      models.LoginRequest        true  "Email and password"
 // @Success      200   {object}  map[string]string  "message and token"
 // @Failure      400   {object}  map[string]string  "Invalid JSON or a missing field"
 // @Failure      401   {object}  map[string]string  "Credentials invalid"
 // @Failure      500   {object}  map[string]string  "Could not generate the token"
 // @Router       /login [post]
 func login(context *gin.Context) {
-	var user models.User
+	var req models.LoginRequest
 
-	err := context.ShouldBindJSON(&user)
+	err := context.ShouldBindJSON(&req)
 
 	if err != nil {
 		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
 		return
+	}
+
+	user := models.User{
+		Email:    req.Email,
+		Password: req.Password,
 	}
 
 	err = user.ValidateCredentials()
