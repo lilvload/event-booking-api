@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lilvload/event-booking-api/models"
@@ -19,7 +20,7 @@ import (
 // @Security     BearerAuth
 // @Param        id   path      int                true  "Event ID"
 // @Success      201  {object}  map[string]string  "message"
-// @Failure      400  {object}  map[string]string  "Invalid ID"
+// @Failure      400  {object}  map[string]string  "Invalid ID or the event is in the past"
 // @Failure      401  {object}  map[string]string  "No valid token"
 // @Failure      404  {object}  map[string]string  "Event not found"
 // @Failure      409  {object}  map[string]string  "Already registered for this event"
@@ -42,6 +43,11 @@ func registerForEvent(context *gin.Context) {
 	}
 	if err != nil {
 		context.JSON(http.StatusInternalServerError, gin.H{"message": "Could not fetch event."})
+		return
+	}
+
+	if event.DateTime.Before(time.Now()) {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "Cannot register for an event in the past."})
 		return
 	}
 

@@ -35,7 +35,7 @@ type seedEvent struct {
 	name        string
 	description string
 	location    string
-	daysFromNow int // negative = the event is in the past
+	daysFromNow int // days from today; must be positive (events in the past are rejected)
 	hour        int // UTC
 }
 
@@ -45,8 +45,8 @@ var seedEvents = []seedEvent{
 	{"bob@example.com", "Startup pitch night", "Five teams pitch their ideas to investors.", "Kyiv", 3, 19},
 	{"bob@example.com", "Hackathon: Smart City", "A 48-hour hackathon on urban mobility and open city data. Teams of up to four people; mentors from local companies help throughout the weekend, and the best three projects get a demo slot at the city council.", "Kharkiv", 30, 9},
 	{"carol@example.com", "Design systems talk", "How to build and maintain a design system.", "Odesa", 21, 17},
-	{"carol@example.com", "Book club: Clean Code", "Monthly discussion of chapters 1-5.", "Online", -10, 19},
-	{"bob@example.com", "Board games evening", "Bring your favourite game.", "Dnipro", -3, 18},
+	{"carol@example.com", "Book club: Clean Code", "Monthly discussion of chapters 1-5.", "Online", 10, 19},
+	{"bob@example.com", "Board games evening", "Bring your favourite game.", "Dnipro", 3, 18},
 	{"alice@example.com", "Database design basics", "Normalization, indexes and transactions explained with SQLite.", "Online", 45, 18},
 }
 

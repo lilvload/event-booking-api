@@ -20,39 +20,63 @@ GET {{baseUrl}}/events
 POST {{baseUrl}}/signup
 Content-Type: application/json
 
-{ "email": "a@test.com", "password": "test123" }
+{ "email": "a@test.com", "password": "password123" }
 
 ### 3. Sign up with the same email again -> 409 "Email already registered."
 POST {{baseUrl}}/signup
 Content-Type: application/json
 
-{ "email": "a@test.com", "password": "test123" }
+{ "email": "a@test.com", "password": "password123" }
 
 ### 4. Sign up user B -> 201
 POST {{baseUrl}}/signup
 Content-Type: application/json
 
-{ "email": "b@test.com", "password": "test123" }
+{ "email": "b@test.com", "password": "password123" }
 
-### 5. Log in with a wrong password -> 401 "Credentials invalid"
+### 5. Log in with a wrong (and short) password -> 401 "Credentials invalid"
 POST {{baseUrl}}/login
 Content-Type: application/json
 
 { "email": "a@test.com", "password": "wrong" }
+
+### 5a. Sign up with a password shorter than 8 characters -> 400
+POST {{baseUrl}}/signup
+Content-Type: application/json
+
+{ "email": "short@test.com", "password": "short" }
+
+### 5b. Sign up with an invalid email -> 400
+POST {{baseUrl}}/signup
+Content-Type: application/json
+
+{ "email": "not-an-email", "password": "password123" }
+
+### 5c. Sign up without a password -> 400
+POST {{baseUrl}}/signup
+Content-Type: application/json
+
+{ "email": "nopass@test.com" }
+
+### 5d. Log in without a password -> 400
+POST {{baseUrl}}/login
+Content-Type: application/json
+
+{ "email": "a@test.com" }
 
 ### 6. Log in as A -> 200, token
 # @name loginA
 POST {{baseUrl}}/login
 Content-Type: application/json
 
-{ "email": "a@test.com", "password": "test123" }
+{ "email": "a@test.com", "password": "password123" }
 
 ### 7. Log in as B -> 200, token
 # @name loginB
 POST {{baseUrl}}/login
 Content-Type: application/json
 
-{ "email": "b@test.com", "password": "test123" }
+{ "email": "b@test.com", "password": "password123" }
 
 ### 8. A creates an event (with "Bearer ") -> 201, camelCase fields
 # @name createEvent
@@ -60,28 +84,35 @@ POST {{baseUrl}}/events
 Content-Type: application/json
 Authorization: Bearer {{tokenA}}
 
-{ "name": "Go meetup", "description": "Talks", "location": "Kyiv", "dateTime": "2026-12-01T18:00:00Z" }
+{ "name": "Go meetup", "description": "Talks", "location": "Kyiv", "dateTime": "2030-12-01T18:00:00Z" }
 
 ### 9. A creates an event with the raw token (no "Bearer ") -> 201
 POST {{baseUrl}}/events
 Content-Type: application/json
 Authorization: {{tokenA}}
 
-{ "name": "Second meetup", "description": "Workshop", "location": "Lviv", "dateTime": "2026-12-15T18:00:00Z" }
+{ "name": "Second meetup", "description": "Workshop", "location": "Lviv", "dateTime": "2030-12-15T18:00:00Z" }
 
 ### 10. Create an event with an invalid token -> 401
 POST {{baseUrl}}/events
 Content-Type: application/json
 Authorization: Bearer abc
 
-{ "name": "X", "description": "X", "location": "X", "dateTime": "2026-12-01T18:00:00Z" }
+{ "name": "X", "description": "X", "location": "X", "dateTime": "2030-12-01T18:00:00Z" }
 
 ### 11. Create an event with a missing field -> 400
 POST {{baseUrl}}/events
 Content-Type: application/json
 Authorization: Bearer {{tokenA}}
 
-{ "name": "No location", "description": "X", "dateTime": "2026-12-01T18:00:00Z" }
+{ "name": "No location", "description": "X", "dateTime": "2030-12-01T18:00:00Z" }
+
+### 11a. Create an event in the past -> 400
+POST {{baseUrl}}/events
+Content-Type: application/json
+Authorization: Bearer {{tokenA}}
+
+{ "name": "Old event", "description": "X", "location": "Kyiv", "dateTime": "2020-01-01T18:00:00Z" }
 
 ### 12. Get the event -> 200
 GET {{baseUrl}}/events/{{eventId}}
@@ -97,14 +128,21 @@ PUT {{baseUrl}}/events/{{eventId}}
 Content-Type: application/json
 Authorization: Bearer {{tokenA}}
 
-{ "name": "Go meetup (updated)", "description": "Talks and pizza", "location": "Kyiv", "dateTime": "2026-12-01T19:00:00Z" }
+{ "name": "Go meetup (updated)", "description": "Talks and pizza", "location": "Kyiv", "dateTime": "2030-12-01T19:00:00Z" }
+
+### 15a. A updates the own event to a date in the past -> 400
+PUT {{baseUrl}}/events/{{eventId}}
+Content-Type: application/json
+Authorization: Bearer {{tokenA}}
+
+{ "name": "Go meetup (updated)", "description": "Talks and pizza", "location": "Kyiv", "dateTime": "2020-01-01T18:00:00Z" }
 
 ### 16. B updates A's event -> 403
 PUT {{baseUrl}}/events/{{eventId}}
 Content-Type: application/json
 Authorization: Bearer {{tokenB}}
 
-{ "name": "Hacked", "description": "X", "location": "X", "dateTime": "2026-12-01T18:00:00Z" }
+{ "name": "Hacked", "description": "X", "location": "X", "dateTime": "2030-12-01T18:00:00Z" }
 
 ### 17. B deletes A's event -> 403
 DELETE {{baseUrl}}/events/{{eventId}}
@@ -115,7 +153,7 @@ PUT {{baseUrl}}/events/999999
 Content-Type: application/json
 Authorization: Bearer {{tokenA}}
 
-{ "name": "X", "description": "X", "location": "X", "dateTime": "2026-12-01T18:00:00Z" }
+{ "name": "X", "description": "X", "location": "X", "dateTime": "2030-12-01T18:00:00Z" }
 
 ### 19. Delete an event that does not exist -> 404
 DELETE {{baseUrl}}/events/999999
