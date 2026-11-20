@@ -591,7 +591,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid JSON or a missing field",
+                        "description": "Invalid JSON, a missing field or validation error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {

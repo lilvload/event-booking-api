@@ -34,7 +34,7 @@ Content-Type: application/json
 
 { "email": "b@test.com", "password": "password123" }
 
-### 5. Log in with a wrong (and short) password -> 401 "Credentials invalid"
+### 5. Log in with a wrong (and short) password -> 401 "Incorrect email or password"
 POST {{baseUrl}}/login
 Content-Type: application/json
 

@@ -1,11 +1,9 @@
 package routes
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/validator/v10"
 	"github.com/lilvload/event-booking-api/db"
 	"github.com/lilvload/event-booking-api/models"
 	"github.com/lilvload/event-booking-api/utils"
@@ -29,25 +27,7 @@ func signup(context *gin.Context) {
 	err := context.ShouldBindJSON(&req)
 
 	if err != nil {
-		if validationErrors, ok := errors.AsType[validator.ValidationErrors](err); ok {
-			fe := validationErrors[0]
-
-			switch {
-			case fe.Tag() == "required":
-				context.JSON(http.StatusBadRequest, gin.H{"message": fe.Field() + " is required."})
-				return
-			case fe.Field() == "Email" && fe.Tag() == "email":
-				context.JSON(http.StatusBadRequest, gin.H{"message": "Invalid email format."})
-				return
-			case fe.Field() == "Password" && fe.Tag() == "min":
-				context.JSON(http.StatusBadRequest, gin.H{"message": "Password must be at least " + fe.Param() + " characters long."})
-				return
-			case fe.Field() == "Password" && fe.Tag() == "max":
-				context.JSON(http.StatusBadRequest, gin.H{"message": "Password must be at most " + fe.Param() + " characters long."})
-				return
-			}
-		}
-		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
+		context.JSON(http.StatusBadRequest, gin.H{"message": validationMessage(err)})
 		return
 	}
 
@@ -87,7 +67,7 @@ func login(context *gin.Context) {
 	err := context.ShouldBindJSON(&req)
 
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
+		context.JSON(http.StatusBadRequest, gin.H{"message": validationMessage(err)})
 		return
 	}
 
