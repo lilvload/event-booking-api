@@ -3,10 +3,10 @@ package routes
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/lilvload/event-booking-api/db"
 	"github.com/lilvload/event-booking-api/models"
 	"github.com/lilvload/event-booking-api/utils"
 )
@@ -58,7 +58,7 @@ func signup(context *gin.Context) {
 
 	err = user.Save()
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		if db.IsUniqueViolation(err) {
 			context.JSON(http.StatusConflict, gin.H{"message": "Email already registered."})
 			return
 		}

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lilvload/event-booking-api/db"
 	"github.com/lilvload/event-booking-api/models"
 )
 
@@ -53,7 +53,7 @@ func registerForEvent(context *gin.Context) {
 
 	err = event.Register(userId)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		if db.IsUniqueViolation(err) {
 			context.JSON(http.StatusConflict, gin.H{"message": "Already registered for this event."})
 			return
 		}
