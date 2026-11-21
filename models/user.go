@@ -9,7 +9,17 @@ import (
 
 type User struct {
 	ID       int64  `json:"id"`
-	Email    string `json:"email" binding:"required"`
+	Email    string `json:"email"`
+	Password string `json:"-"`
+}
+
+type SignupRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=8,max=72"`
+}
+
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -57,13 +67,13 @@ func (u *User) ValidateCredentials() error {
 	err := row.Scan(&u.ID, &retrievedPassword)
 
 	if err != nil {
-		return errors.New("Credentials invalid")
+		return errors.New("Incorrect email or password")
 	}
 
 	passwordIsValid := utils.CheckPasswordHash(u.Password, retrievedPassword)
 
 	if !passwordIsValid {
-		return errors.New("Credentials invalid")
+		return errors.New("Incorrect email or password")
 	}
 
 	return nil

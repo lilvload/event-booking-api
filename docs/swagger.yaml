@@ -20,13 +20,23 @@ definitions:
     - location
     - name
     type: object
-  models.User:
+  models.LoginRequest:
     properties:
       email:
         type: string
-      id:
-        type: integer
       password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  models.SignupRequest:
+    properties:
+      email:
+        type: string
+      password:
+        maxLength: 72
+        minLength: 8
         type: string
     required:
     - email
@@ -81,7 +91,7 @@ paths:
             additionalProperties: true
             type: object
         "400":
-          description: Invalid JSON or a missing field
+          description: Invalid JSON, a missing field or a date in the past
           schema:
             additionalProperties:
               type: string
@@ -123,7 +133,7 @@ paths:
               type: string
             type: object
         "400":
-          description: Invalid ID, or the event could not be deleted
+          description: Invalid ID
           schema:
             additionalProperties:
               type: string
@@ -147,7 +157,7 @@ paths:
               type: string
             type: object
         "500":
-          description: Could not fetch the event
+          description: Could not fetch or delete the event
           schema:
             additionalProperties:
               type: string
@@ -219,7 +229,8 @@ paths:
               type: string
             type: object
         "400":
-          description: Invalid ID, invalid JSON or a missing field
+          description: Invalid ID, invalid JSON, a missing field or a date in the
+            past
           schema:
             additionalProperties:
               type: string
@@ -319,7 +330,7 @@ paths:
               type: string
             type: object
         "400":
-          description: Invalid ID
+          description: Invalid ID or the event is in the past
           schema:
             additionalProperties:
               type: string
@@ -359,12 +370,12 @@ paths:
       - application/json
       description: Checks the credentials and returns a JWT that is valid for 2 hours.
       parameters:
-      - description: Email and password (id is ignored)
+      - description: Email and password
         in: body
         name: user
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/models.LoginRequest'
       produces:
       - application/json
       responses:
@@ -402,12 +413,12 @@ paths:
       description: Registers a new user. The password is stored as a bcrypt hash.
         No token is returned; call POST /login afterwards.
       parameters:
-      - description: Email and password (id is ignored)
+      - description: Email and password
         in: body
         name: user
         required: true
         schema:
-          $ref: '#/definitions/models.User'
+          $ref: '#/definitions/models.SignupRequest'
       produces:
       - application/json
       responses:
@@ -418,7 +429,7 @@ paths:
               type: string
             type: object
         "400":
-          description: Invalid JSON or a missing field
+          description: Invalid JSON, a missing field or validation error
           schema:
             additionalProperties:
               type: string

@@ -28,6 +28,8 @@ func (e *Event) Save() error {
 	}
 
 	defer stmt.Close()
+
+	e.DateTime = e.DateTime.UTC()
 	result, err := stmt.Exec(e.Name, e.Description, e.Location, e.DateTime, e.UserID)
 
 	if err != nil {
@@ -44,6 +46,7 @@ func GetAllEvents() ([]Event, error) {
 	query := `
 	SELECT id, name, description, location, dateTime, user_id 
 	FROM events
+	ORDER BY dateTime ASC
 	`
 	rows, err := db.DB.Query(query)
 
@@ -106,7 +109,7 @@ func (event Event) Update() error {
 
 	defer stmt.Close()
 
-	_, err = stmt.Exec(event.Name, event.Description, event.Location, event.DateTime, event.ID)
+	_, err = stmt.Exec(event.Name, event.Description, event.Location, event.DateTime.UTC(), event.ID)
 	return err
 }
 

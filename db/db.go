@@ -2,9 +2,11 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"os"
 
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
+	sqlitelib "modernc.org/sqlite/lib"
 )
 
 var DB *sql.DB
@@ -76,4 +78,11 @@ func createTables() {
 	if err != nil {
 		panic("Could not create registrations table")
 	}
+}
+
+func IsUniqueViolation(err error) bool {
+	if sqliteErr, ok := errors.AsType[*sqlite.Error](err); ok {
+		return sqliteErr.Code() == sqlitelib.SQLITE_CONSTRAINT_UNIQUE
+	}
+	return false
 }

@@ -83,7 +83,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid JSON or a missing field",
+                        "description": "Invalid JSON, a missing field or a date in the past",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -212,7 +212,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid ID, invalid JSON or a missing field",
+                        "description": "Invalid ID, invalid JSON, a missing field or a date in the past",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -292,7 +292,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid ID, or the event could not be deleted",
+                        "description": "Invalid ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -328,7 +328,7 @@ const docTemplate = `{
                         }
                     },
                     "500": {
-                        "description": "Could not fetch the event",
+                        "description": "Could not fetch or delete the event",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -374,7 +374,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid ID",
+                        "description": "Invalid ID or the event is in the past",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -507,12 +507,12 @@ const docTemplate = `{
                 "summary": "Log in",
                 "parameters": [
                     {
-                        "description": "Email and password (id is ignored)",
+                        "description": "Email and password",
                         "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/models.LoginRequest"
                         }
                     }
                 ],
@@ -571,12 +571,12 @@ const docTemplate = `{
                 "summary": "Create a user",
                 "parameters": [
                     {
-                        "description": "Email and password (id is ignored)",
+                        "description": "Email and password",
                         "name": "user",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/models.User"
+                            "$ref": "#/definitions/models.SignupRequest"
                         }
                     }
                 ],
@@ -591,7 +591,7 @@ const docTemplate = `{
                         }
                     },
                     "400": {
-                        "description": "Invalid JSON or a missing field",
+                        "description": "Invalid JSON, a missing field or validation error",
                         "schema": {
                             "type": "object",
                             "additionalProperties": {
@@ -651,7 +651,7 @@ const docTemplate = `{
                 }
             }
         },
-        "models.User": {
+        "models.LoginRequest": {
             "type": "object",
             "required": [
                 "email",
@@ -661,11 +661,25 @@ const docTemplate = `{
                 "email": {
                     "type": "string"
                 },
-                "id": {
-                    "type": "integer"
-                },
                 "password": {
                     "type": "string"
+                }
+            }
+        },
+        "models.SignupRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "maxLength": 72,
+                    "minLength": 8
                 }
             }
         }

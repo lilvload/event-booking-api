@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/lilvload/event-booking-api/models"
@@ -69,7 +70,7 @@ func getEvent(context *gin.Context) {
 // @Security     BearerAuth
 // @Param        event  body      models.Event            true  "Event data (id and userId are ignored)"
 // @Success      201    {object}  map[string]interface{}  "message and the created event"
-// @Failure      400    {object}  map[string]string       "Invalid JSON or a missing field"
+// @Failure      400    {object}  map[string]string       "Invalid JSON, a missing field or a date in the past"
 // @Failure      401    {object}  map[string]string       "No valid token"
 // @Failure      500    {object}  map[string]string       "Could not create the event"
 // @Router       /events [post]
@@ -78,7 +79,12 @@ func createEvent(context *gin.Context) {
 	err := context.ShouldBindJSON(&event)
 
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
+		context.JSON(http.StatusBadRequest, gin.H{"message": validationMessage(err)})
+		return
+	}
+
+	if event.DateTime.Before(time.Now()) {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "The event date and time must be in the future."})
 		return
 	}
 
@@ -105,7 +111,7 @@ func createEvent(context *gin.Context) {
 // @Param        id     path      int                true  "Event ID"
 // @Param        event  body      models.Event       true  "New event data (id and userId are ignored)"
 // @Success      200    {object}  map[string]string  "message"
-// @Failure      400    {object}  map[string]string  "Invalid ID, invalid JSON or a missing field"
+// @Failure      400    {object}  map[string]string  "Invalid ID, invalid JSON, a missing field or a date in the past"
 // @Failure      401    {object}  map[string]string  "No valid token"
 // @Failure      403    {object}  map[string]string  "The current user is not the creator"
 // @Failure      404    {object}  map[string]string  "Event not found"
@@ -139,7 +145,12 @@ func updateEvent(context *gin.Context) {
 	err = context.ShouldBindJSON(&updatedEvent)
 
 	if err != nil {
-		context.JSON(http.StatusBadRequest, gin.H{"message": "Could not parse request data."})
+		context.JSON(http.StatusBadRequest, gin.H{"message": validationMessage(err)})
+		return
+	}
+
+	if updatedEvent.DateTime.Before(time.Now()) {
+		context.JSON(http.StatusBadRequest, gin.H{"message": "The event date and time must be in the future."})
 		return
 	}
 
